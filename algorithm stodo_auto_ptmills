@@ -1,0 +1,133 @@
+algorithm stodo_auto_ptmills{
+Prof checkavailablecap(ordno,orditno,timestamp)
+{
+ Return( remaining value 'm' for given timestamp)
+}
+Proc createnum(int ordno,orditno,timestamp)
+{
+ /*Function to create num, for one of more timestamps*/
+ Return( getmaxnum+1)  /*getmaxnum from table ymsd_crt_sto_do_data using ordno and orditno*/
+}
+
+ /* Assuming CLASS ALREADY MADE FOR EACH PIPE BUNDLE order, every object is a row in Sap_STK_new_1*/
+
+proc main final_pipes_allocation{
+/******Setting max and min****/
+Loop for every row/object{
+ Obj.get(category,menge,length,od) /*classifying based on length not needed */
+  /* Classifying tubes based on TFF and non TFF*/ 
+Add obj.max and obj.min  and obj.tff to table sap_stk_new_1
+
+Obj.Min=0;
+  IF Obj.CATEGORY in {BOT,COR,AHT}
+{
+Obj.TFF=0
+Row.min=15
+Row.max=20
+}
+Elsif row.category= 'PRP'
+{
+Obj.Tff=0
+Obj.Max=15
+}
+  ELSE {
+Obj.TFF=1
+Obj.Min=13
+Obj.Max=13.5
+}
+ If( 2.5<= OBJ.length<=4.5)
+{
+    OBJ.tr='a'
+    Obj.Min=15 
+    Obj.Max=20
+}
+ 
+ else {
+   Obj.tr='b'
+   Obj.Min=obj.Max=22
+}
+
+/*a being 15/20 tons and b being 22 tons*/
+If b.draw_type = 'N'{
+Set obj.Max=16
+ If ( 0<=obj.OD<50.8)
+Obj.Min=14
+Elsif(50.8<=obj.OD<58.6)
+Obj.Min=11
+Elsif(obj.OD=63.5)
+Obj.Min=13
+Elsif(obj.OD=65)
+Obj.Min=13
+Elsif(70<=obj.OD<76.2)
+Obj.Min=12
+Elsif(81.2<=obj.OD<=88.2)
+Obj.Min=11
+Elsif(101<=obj.OD<=1000)
+Obj.Min=10
+}//End if
+}//End of loop
+Create view Allocation as
+(
+select sum(b.menge) sum , a.kunnur, b.tff , b.menge, b.category,b.max,b.min,a.ordno, a.orditno
+
+  from t_tub_ybal a, SAP_STK_NEW_1 b where a.sup_plant='056'
+
+and A.ORDNO=B.VBELN and ltrim(A.ORDITNO,0) = ltrim(B.POSNR,0)
+
+and A.SUP_PLANT=B.WERKS
+Group by a.kunnur, b.menge,b.category,b.tff,b.max,b.min, a.ordno,a.orditno
+Order by a.kunnur, b.menge DESC
+);
+/*For the view allocation*/
+m=m1=row.max
+If row.tff=1
+{
+Loop While(m>0){
+If( m>row.sum)
+m=m-row.sum
+Else
+row.sum=row.sum-row.menge  //subtract current menge from sum(menge)
+If( checkavailablecap(ordno,orditno,timestamp-1)>row.menge)/*check for space for current menge in previous timestamps*/
+{
+  Createnum(ordno,orditno)
+}
+Else(
+
+Createnum(ordno,orditno)
+
+}
+row.menge=m;
+}//End if
+Else{
+Loop While(m>0){
+If( m>row.sum)
+m=m-row.sum
+Else
+{
+row.sum=row.sum-row.menge
+If( checkavailablecap(ordno,orditno,timestamp-1)>row.menge)
+{
+  Createnum(ordno,orditno)
+}
+Else{
+Createnum (ordno,orditno) 
+}
+row.menge=m;
+}
+}//End loop
+
+/*Add num and update row.menge to required table from the view allocation using ordno and orditno*/
+COMMIT
+ 
+
+
+
+
+
+ 
+ 
+ 
+
+
+
+ 
